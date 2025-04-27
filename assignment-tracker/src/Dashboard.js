@@ -1,38 +1,54 @@
 import React, { useState } from 'react';
+import './Dashboard.css';
 
 function Dashboard({ username }) {
   const [activeMenu, setActiveMenu] = useState('upcoming');
   const [assignments, setAssignments] = useState([]);
-  const [newAssignment, setNewAssignment] = useState({
-    name: '',
-    course: '',
-    dueDate: '',
-  });
+  const [newAssignment, setNewAssignment] = useState({ name: '', course: '', dueDate: '' });
   const [selectedCourse, setSelectedCourse] = useState('All');
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [editAssignmentData, setEditAssignmentData] = useState({ name: '', course: '', dueDate: '' });
+
+  const today = new Date().toISOString().split('T')[0];
 
   const handleAddAssignment = () => {
     if (newAssignment.name && newAssignment.course && newAssignment.dueDate) {
-      setAssignments(prev => [
-        ...prev,
-        { ...newAssignment, completed: false }
-      ]);
+      setAssignments(prev => [...prev, { ...newAssignment, completed: false }]);
       setNewAssignment({ name: '', course: '', dueDate: '' });
       setActiveMenu('upcoming');
     }
   };
 
-  const markAsCompleted = (index) => {
-    const confirmComplete = window.confirm('Are you sure you want to mark this assignment as completed?');
-    if (!confirmComplete) return;
-
-    setAssignments(prev => {
-      const updated = [...prev];
-      updated[index].completed = true;
-      return updated;
-    });
+  const handleDeleteAssignment = (index) => {
+    if (window.confirm('Are you sure you want to delete this assignment?')) {
+      setAssignments(prev => prev.filter((_, idx) => idx !== index));
+    }
   };
 
-  const today = new Date().toISOString().split('T')[0];
+  const handleEditAssignment = (index) => {
+    setEditingIndex(index);
+    setEditAssignmentData(assignments[index]);
+  };
+
+  const saveEditedAssignment = () => {
+    setAssignments(prev => {
+      const updated = [...prev];
+      updated[editingIndex] = { ...editAssignmentData, completed: updated[editingIndex].completed };
+      return updated;
+    });
+    setEditingIndex(null);
+    setEditAssignmentData({ name: '', course: '', dueDate: '' });
+  };
+
+  const markAsCompleted = (index) => {
+    if (window.confirm('Mark this assignment as completed?')) {
+      setAssignments(prev => {
+        const updated = [...prev];
+        updated[index].completed = true;
+        return updated;
+      });
+    }
+  };
 
   const renderAssignments = (filterFn, sortByDate = false) => {
     let filtered = assignments.filter(filterFn);
@@ -41,31 +57,59 @@ function Dashboard({ username }) {
       filtered.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
     }
 
-    if (filtered.length === 0) {
-      return <p>No assignments found.</p>;
-    }
+    if (filtered.length === 0) return <p>No assignments found.</p>;
 
     return filtered.map((assignment, idx) => {
       const isOverdue = assignment.dueDate < today && !assignment.completed;
+      const globalIndex = assignments.indexOf(assignment);
+
+      if (editingIndex === globalIndex) {
+        return (
+          <div key={idx} className="assignment-card">
+            <input
+              type="text"
+              value={editAssignmentData.name}
+              onChange={(e) => setEditAssignmentData({ ...editAssignmentData, name: e.target.value })}
+              className="form-input"
+            />
+            <select
+              value={editAssignmentData.course}
+              onChange={(e) => setEditAssignmentData({ ...editAssignmentData, course: e.target.value })}
+              className="form-select"
+            >
+              <option value="">Select Course</option>
+              <option value="Math">Math</option>
+              <option value="Science">Science</option>
+              <option value="History">History</option>
+              <option value="English">English</option>
+            </select>
+            <input
+              type="date"
+              value={editAssignmentData.dueDate}
+              onChange={(e) => setEditAssignmentData({ ...editAssignmentData, dueDate: e.target.value })}
+              className="form-input"
+            />
+            <div className="assignment-actions">
+              <button onClick={saveEditedAssignment}>Save</button>
+              <button onClick={() => setEditingIndex(null)}>Cancel</button>
+            </div>
+          </div>
+        );
+      }
 
       return (
         <div
           key={idx}
-          style={{
-            border: '1px solid #ccc',
-            marginBottom: '1rem',
-            padding: '1rem',
-            backgroundColor: isOverdue ? '#ffcccc' : 'white'
-          }}
+          className={`assignment-card ${isOverdue ? 'overdue' : ''}`}
         >
           <h3>{assignment.name}</h3>
           <p>Course: {assignment.course}</p>
           <p>Due Date: {assignment.dueDate}</p>
           {!assignment.completed && (
-            <button onClick={() => markAsCompleted(assignments.indexOf(assignment))}>
-              Mark as Completed
-            </button>
+            <button onClick={() => markAsCompleted(globalIndex)}>Mark as Completed</button>
           )}
+          <button onClick={() => handleEditAssignment(globalIndex)}>Edit</button>
+          <button onClick={() => handleDeleteAssignment(globalIndex)}>Delete</button>
         </div>
       );
     });
@@ -84,49 +128,74 @@ function Dashboard({ username }) {
 
     const courses = Object.keys(grouped);
 
-    if (courses.length === 0) {
-      return <p>No assignments found.</p>;
-    }
+    if (courses.length === 0) return <p>No assignments found.</p>;
 
-    // Filter based on selected course
     const filteredCourses = selectedCourse === 'All' ? courses : courses.filter(c => c === selectedCourse);
 
     return (
       <div>
-        <div style={{ marginBottom: '1rem' }}>
-          <select
-            value={selectedCourse}
-            onChange={(e) => setSelectedCourse(e.target.value)}
-            style={{ padding: '0.5rem' }}
-          >
-            <option value="All">All Courses</option>
-            {courses.map((course, idx) => (
-              <option key={idx} value={course}>{course}</option>
-            ))}
-          </select>
-        </div>
+        <select
+          value={selectedCourse}
+          onChange={(e) => setSelectedCourse(e.target.value)}
+          className="form-select"
+        >
+          <option value="All">All Courses</option>
+          {courses.map((course, idx) => (
+            <option key={idx} value={course}>{course}</option>
+          ))}
+        </select>
 
         {filteredCourses.map((course, idx) => (
-          <div key={idx} style={{ marginBottom: '2rem' }}>
+          <div key={idx} className="course-group">
             <h3>{course}</h3>
             {grouped[course].map((assignment, idx2) => {
               const isOverdue = assignment.dueDate < today && !assignment.completed;
+              const globalIndex = assignments.indexOf(assignment);
+
+              if (editingIndex === globalIndex) {
+                return (
+                  <div key={idx2} className="assignment-card">
+                    <input
+                      type="text"
+                      value={editAssignmentData.name}
+                      onChange={(e) => setEditAssignmentData({ ...editAssignmentData, name: e.target.value })}
+                      className="form-input"
+                    />
+                    <select
+                      value={editAssignmentData.course}
+                      onChange={(e) => setEditAssignmentData({ ...editAssignmentData, course: e.target.value })}
+                      className="form-select"
+                    >
+                      <option value="">Select Course</option>
+                      <option value="Math">Math</option>
+                      <option value="Science">Science</option>
+                      <option value="History">History</option>
+                      <option value="English">English</option>
+                    </select>
+                    <input
+                      type="date"
+                      value={editAssignmentData.dueDate}
+                      onChange={(e) => setEditAssignmentData({ ...editAssignmentData, dueDate: e.target.value })}
+                      className="form-input"
+                    />
+                    <div className="assignment-actions">
+                      <button onClick={saveEditedAssignment}>Save</button>
+                      <button onClick={() => setEditingIndex(null)}>Cancel</button>
+                    </div>
+                  </div>
+                );
+              }
 
               return (
                 <div
                   key={idx2}
-                  style={{
-                    border: '1px solid #ccc',
-                    marginBottom: '1rem',
-                    padding: '1rem',
-                    backgroundColor: isOverdue ? '#ffcccc' : 'white'
-                  }}
+                  className={`assignment-card ${isOverdue ? 'overdue' : ''}`}
                 >
                   <h4>{assignment.name}</h4>
                   <p>Due Date: {assignment.dueDate}</p>
-                  <button onClick={() => markAsCompleted(assignments.indexOf(assignment))}>
-                    Mark as Completed
-                  </button>
+                  <button onClick={() => markAsCompleted(globalIndex)}>Mark as Completed</button>
+                  <button onClick={() => handleEditAssignment(globalIndex)}>Edit</button>
+                  <button onClick={() => handleDeleteAssignment(globalIndex)}>Delete</button>
                 </div>
               );
             })}
@@ -137,21 +206,18 @@ function Dashboard({ username }) {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh' }}>
+    <div className="dashboard-container">
       {/* Sidebar */}
-      <div style={{ width: '200px', backgroundColor: '#f0f0f0', padding: '1rem' }}>
+      <div className="sidebar">
         <h3>Menu</h3>
-        <button onClick={() => setActiveMenu('upcoming')}>Upcoming Assignments</button>
-        <br /><br />
-        <button onClick={() => setActiveMenu('course')}>Course Assignments</button>
-        <br /><br />
-        <button onClick={() => setActiveMenu('completed')}>Completed Assignments</button>
-        <br /><br />
-        <button onClick={() => setActiveMenu('add')}>Add Assignment</button>
+        <button onClick={() => { setActiveMenu('upcoming'); setEditingIndex(null); }}>Upcoming Assignments</button>
+        <button onClick={() => { setActiveMenu('course'); setEditingIndex(null); }}>Course Assignments</button>
+        <button onClick={() => { setActiveMenu('completed'); setEditingIndex(null); }}>Completed Assignments</button>
+        <button onClick={() => { setActiveMenu('add'); setEditingIndex(null); }}>Add Assignment</button>
       </div>
 
       {/* Main Content */}
-      <div style={{ flex: 1, padding: '2rem', overflowY: 'auto' }}>
+      <div className="main-content">
         <h2>Welcome, {username}!</h2>
 
         {activeMenu === 'upcoming' && (
@@ -178,19 +244,19 @@ function Dashboard({ username }) {
         {activeMenu === 'add' && (
           <>
             <h2>Add New Assignment</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', maxWidth: '400px' }}>
+            <div className="add-assignment-form">
               <input
                 type="text"
                 placeholder="Assignment Name"
                 value={newAssignment.name}
                 onChange={(e) => setNewAssignment({ ...newAssignment, name: e.target.value })}
-                style={{ marginBottom: '1rem' }}
+                className="form-input"
               />
 
               <select
                 value={newAssignment.course}
                 onChange={(e) => setNewAssignment({ ...newAssignment, course: e.target.value })}
-                style={{ marginBottom: '1rem' }}
+                className="form-select"
               >
                 <option value="">Select Course</option>
                 <option value="Math">Math</option>
@@ -203,10 +269,10 @@ function Dashboard({ username }) {
                 type="date"
                 value={newAssignment.dueDate}
                 onChange={(e) => setNewAssignment({ ...newAssignment, dueDate: e.target.value })}
-                style={{ marginBottom: '1rem' }}
+                className="form-input"
               />
 
-              <button onClick={handleAddAssignment}>Save Assignment</button>
+              <button onClick={handleAddAssignment} className="add-button">Save Assignment</button>
             </div>
           </>
         )}

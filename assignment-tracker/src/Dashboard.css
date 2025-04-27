@@ -1,0 +1,94 @@
+/* Dashboard.css */
+
+.dashboard-container {
+    display: flex;
+    height: 100vh;
+  }
+  
+  .sidebar {
+    width: 200px;
+    background-color: #f0f0f0;
+    padding: 1rem;
+  }
+  
+  .sidebar h3 {
+    margin-bottom: 1rem;
+  }
+  
+  .sidebar button {
+    display: block;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    width: 100%;
+    background-color: #e0e0e0;
+    border: none;
+    cursor: pointer;
+  }
+  
+  .sidebar button:hover {
+    background-color: #ccc;
+  }
+  
+  .main-content {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+  }
+  
+  .assignment-card {
+    border: 1px solid #ccc;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background-color: white;
+  }
+  
+  .assignment-card.overdue {
+    background-color: #ffcccc;
+  }
+  
+  .assignment-card h3,
+  .assignment-card h4 {
+    margin-top: 0;
+  }
+  
+  .assignment-actions button {
+    margin-right: 0.5rem;
+    padding: 0.3rem 0.6rem;
+    background-color: #e0e0e0;
+    border: none;
+    cursor: pointer;
+  }
+  
+  .assignment-actions button:hover {
+    background-color: #ccc;
+  }
+  
+  .add-assignment-form {
+    display: flex;
+    flex-direction: column;
+    max-width: 400px;
+  }
+  
+  .add-assignment-form input,
+  .add-assignment-form select {
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+  }
+  
+  .add-assignment-form button {
+    padding: 0.5rem;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+  
+  .add-assignment-form button:hover {
+    background-color: #45a049;
+  }
+  
+  .course-select {
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+  }
+  
