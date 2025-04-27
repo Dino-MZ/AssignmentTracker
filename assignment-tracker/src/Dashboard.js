@@ -8,6 +8,7 @@ function Dashboard({ username }) {
     course: '',
     dueDate: '',
   });
+  const [selectedCourse, setSelectedCourse] = useState('All');
 
   const handleAddAssignment = () => {
     if (newAssignment.name && newAssignment.course && newAssignment.dueDate) {
@@ -15,14 +16,15 @@ function Dashboard({ username }) {
         ...prev,
         { ...newAssignment, completed: false }
       ]);
-      // Clear the form after adding
       setNewAssignment({ name: '', course: '', dueDate: '' });
-      // Optionally switch back to Upcoming menu
       setActiveMenu('upcoming');
     }
   };
 
   const markAsCompleted = (index) => {
+    const confirmComplete = window.confirm('Are you sure you want to mark this assignment as completed?');
+    if (!confirmComplete) return;
+
     setAssignments(prev => {
       const updated = [...prev];
       updated[index].completed = true;
@@ -30,27 +32,108 @@ function Dashboard({ username }) {
     });
   };
 
-  const today = new Date().toISOString().split('T')[0]; // Get today's date for comparison
+  const today = new Date().toISOString().split('T')[0];
 
-  const renderAssignments = (filterFn) => {
-    const filtered = assignments.filter(filterFn);
+  const renderAssignments = (filterFn, sortByDate = false) => {
+    let filtered = assignments.filter(filterFn);
+
+    if (sortByDate) {
+      filtered.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+    }
 
     if (filtered.length === 0) {
       return <p>No assignments found.</p>;
     }
 
-    return filtered.map((assignment, idx) => (
-      <div key={idx} style={{ border: '1px solid #ccc', marginBottom: '1rem', padding: '1rem' }}>
-        <h3>{assignment.name}</h3>
-        <p>Course: {assignment.course}</p>
-        <p>Due Date: {assignment.dueDate}</p>
-        {!assignment.completed && (
-          <button onClick={() => markAsCompleted(assignments.indexOf(assignment))}>
-            Mark as Completed
-          </button>
-        )}
+    return filtered.map((assignment, idx) => {
+      const isOverdue = assignment.dueDate < today && !assignment.completed;
+
+      return (
+        <div
+          key={idx}
+          style={{
+            border: '1px solid #ccc',
+            marginBottom: '1rem',
+            padding: '1rem',
+            backgroundColor: isOverdue ? '#ffcccc' : 'white'
+          }}
+        >
+          <h3>{assignment.name}</h3>
+          <p>Course: {assignment.course}</p>
+          <p>Due Date: {assignment.dueDate}</p>
+          {!assignment.completed && (
+            <button onClick={() => markAsCompleted(assignments.indexOf(assignment))}>
+              Mark as Completed
+            </button>
+          )}
+        </div>
+      );
+    });
+  };
+
+  const renderGroupedByCourse = () => {
+    const activeAssignments = assignments.filter(a => !a.completed);
+    const grouped = {};
+
+    activeAssignments.forEach(a => {
+      if (!grouped[a.course]) {
+        grouped[a.course] = [];
+      }
+      grouped[a.course].push(a);
+    });
+
+    const courses = Object.keys(grouped);
+
+    if (courses.length === 0) {
+      return <p>No assignments found.</p>;
+    }
+
+    // Filter based on selected course
+    const filteredCourses = selectedCourse === 'All' ? courses : courses.filter(c => c === selectedCourse);
+
+    return (
+      <div>
+        <div style={{ marginBottom: '1rem' }}>
+          <select
+            value={selectedCourse}
+            onChange={(e) => setSelectedCourse(e.target.value)}
+            style={{ padding: '0.5rem' }}
+          >
+            <option value="All">All Courses</option>
+            {courses.map((course, idx) => (
+              <option key={idx} value={course}>{course}</option>
+            ))}
+          </select>
+        </div>
+
+        {filteredCourses.map((course, idx) => (
+          <div key={idx} style={{ marginBottom: '2rem' }}>
+            <h3>{course}</h3>
+            {grouped[course].map((assignment, idx2) => {
+              const isOverdue = assignment.dueDate < today && !assignment.completed;
+
+              return (
+                <div
+                  key={idx2}
+                  style={{
+                    border: '1px solid #ccc',
+                    marginBottom: '1rem',
+                    padding: '1rem',
+                    backgroundColor: isOverdue ? '#ffcccc' : 'white'
+                  }}
+                >
+                  <h4>{assignment.name}</h4>
+                  <p>Due Date: {assignment.dueDate}</p>
+                  <button onClick={() => markAsCompleted(assignments.indexOf(assignment))}>
+                    Mark as Completed
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
-    ));
+    );
   };
 
   return (
@@ -71,19 +154,17 @@ function Dashboard({ username }) {
       <div style={{ flex: 1, padding: '2rem', overflowY: 'auto' }}>
         <h2>Welcome, {username}!</h2>
 
-        {/* Different Menus */}
         {activeMenu === 'upcoming' && (
           <>
             <h2>Upcoming Assignments</h2>
-            {renderAssignments(a => !a.completed)
-              /* Sort soonest first and highlight overdue */}
+            {renderAssignments(a => !a.completed, true)}
           </>
         )}
 
         {activeMenu === 'course' && (
           <>
             <h2>Assignments by Course</h2>
-            {renderAssignments(a => !a.completed)}
+            {renderGroupedByCourse()}
           </>
         )}
 
