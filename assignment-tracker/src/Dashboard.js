@@ -2,6 +2,56 @@ import React, { useState } from 'react';
 
 function Dashboard({ username }) {
   const [activeMenu, setActiveMenu] = useState('upcoming');
+  const [assignments, setAssignments] = useState([]);
+  const [newAssignment, setNewAssignment] = useState({
+    name: '',
+    course: '',
+    dueDate: '',
+  });
+
+  const handleAddAssignment = () => {
+    if (newAssignment.name && newAssignment.course && newAssignment.dueDate) {
+      setAssignments(prev => [
+        ...prev,
+        { ...newAssignment, completed: false }
+      ]);
+      // Clear the form after adding
+      setNewAssignment({ name: '', course: '', dueDate: '' });
+      // Optionally switch back to Upcoming menu
+      setActiveMenu('upcoming');
+    }
+  };
+
+  const markAsCompleted = (index) => {
+    setAssignments(prev => {
+      const updated = [...prev];
+      updated[index].completed = true;
+      return updated;
+    });
+  };
+
+  const today = new Date().toISOString().split('T')[0]; // Get today's date for comparison
+
+  const renderAssignments = (filterFn) => {
+    const filtered = assignments.filter(filterFn);
+
+    if (filtered.length === 0) {
+      return <p>No assignments found.</p>;
+    }
+
+    return filtered.map((assignment, idx) => (
+      <div key={idx} style={{ border: '1px solid #ccc', marginBottom: '1rem', padding: '1rem' }}>
+        <h3>{assignment.name}</h3>
+        <p>Course: {assignment.course}</p>
+        <p>Due Date: {assignment.dueDate}</p>
+        {!assignment.completed && (
+          <button onClick={() => markAsCompleted(assignments.indexOf(assignment))}>
+            Mark as Completed
+          </button>
+        )}
+      </div>
+    ));
+  };
 
   return (
     <div style={{ display: 'flex', height: '100vh' }}>
@@ -18,14 +68,67 @@ function Dashboard({ username }) {
       </div>
 
       {/* Main Content */}
-      <div style={{ flex: 1, padding: '2rem' }}>
+      <div style={{ flex: 1, padding: '2rem', overflowY: 'auto' }}>
         <h2>Welcome, {username}!</h2>
-        <div>
-          {activeMenu === 'upcoming' && <p>Upcoming Assignments Menu</p>}
-          {activeMenu === 'course' && <p>Course Assignments Menu</p>}
-          {activeMenu === 'completed' && <p>Completed Assignments Menu</p>}
-          {activeMenu === 'add' && <p>Add Assignment Menu</p>}
-        </div>
+
+        {/* Different Menus */}
+        {activeMenu === 'upcoming' && (
+          <>
+            <h2>Upcoming Assignments</h2>
+            {renderAssignments(a => !a.completed)
+              /* Sort soonest first and highlight overdue */}
+          </>
+        )}
+
+        {activeMenu === 'course' && (
+          <>
+            <h2>Assignments by Course</h2>
+            {renderAssignments(a => !a.completed)}
+          </>
+        )}
+
+        {activeMenu === 'completed' && (
+          <>
+            <h2>Completed Assignments</h2>
+            {renderAssignments(a => a.completed)}
+          </>
+        )}
+
+        {activeMenu === 'add' && (
+          <>
+            <h2>Add New Assignment</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', maxWidth: '400px' }}>
+              <input
+                type="text"
+                placeholder="Assignment Name"
+                value={newAssignment.name}
+                onChange={(e) => setNewAssignment({ ...newAssignment, name: e.target.value })}
+                style={{ marginBottom: '1rem' }}
+              />
+
+              <select
+                value={newAssignment.course}
+                onChange={(e) => setNewAssignment({ ...newAssignment, course: e.target.value })}
+                style={{ marginBottom: '1rem' }}
+              >
+                <option value="">Select Course</option>
+                <option value="Math">Math</option>
+                <option value="Science">Science</option>
+                <option value="History">History</option>
+                <option value="English">English</option>
+              </select>
+
+              <input
+                type="date"
+                value={newAssignment.dueDate}
+                onChange={(e) => setNewAssignment({ ...newAssignment, dueDate: e.target.value })}
+                style={{ marginBottom: '1rem' }}
+              />
+
+              <button onClick={handleAddAssignment}>Save Assignment</button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
